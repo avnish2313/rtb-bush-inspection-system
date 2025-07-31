@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RTB Bush Inspection Dashboard</title>
+  <style>
+    /* Layout and styling */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f7f7f7;
+    }
+    h1 { text-align: center; margin-bottom: 30px; }
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 40px;
+    }
+    .images {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+    .images img {
+      width: 320px;
+      height: 240px;
+      object-fit: contain;
+      border: 1px solid #ccc;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      background-color: #fff;
+    }
+    table {
+      border-collapse: collapse;
+      width: 300px;
+      background-color: #fff;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    th, td {
+      padding: 8px 12px;
+      text-align: center;
+      border: 1px solid #ddd;
+    }
+    th { background-color: #f0f0f0; }
+    .controls {
+      margin-top: 20px;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+    }
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background-color 0.2s;
+    }
+    button.start { background-color: #27ae60; color: #fff; }
+    button.start:hover { background-color: #219d54; }
+    button.stop { background-color: #2980b9; color: #fff; }
+    button.stop:hover { background-color: #2471a3; }
+    button.emergency { background-color: #e74c3c; color: #fff; }
+    button.emergency:hover { background-color: #c0392b; }
+    #status { margin-top: 10px; text-align: center; font-size: 14px; color: #555; }
+  </style>
+</head>
+<body>
+  <h1>RTB Bush Inspection Dashboard</h1>
+  <div class="container">
+    <div class="images">
+      <!-- Depth images loaded from external placeholder service -->
+      <img id="depthImg1" src="https://via.placeholder.com/320x240?text=Depth+Image+1" alt="Depth Image 1">
+      <img id="depthImg2" src="https://via.placeholder.com/320x240?text=Depth+Image+2" alt="Depth Image 2">
+    </div>
+    <div>
+      <table>
+        <thead>
+          <tr><th>Measurement</th><th>Value</th></tr>
+        </thead>
+        <tbody id="measurementTableBody">
+          <tr><td>Height</td><td id="heightVal">–</td></tr>
+          <tr><td>ID</td><td id="idVal">–</td></tr>
+          <tr><td>OD</td><td id="odVal">–</td></tr>
+        </tbody>
+      </table>
+      <div class="controls">
+        <button class="start"    onclick="startSystem()">Start</button>
+        <button class="stop"     onclick="stopSystem()">Stop</button>
+        <button class="emergency" onclick="emergencyStop()">Emergency Stop</button>
+      </div>
+      <div id="status"></div>
+    </div>
+  </div>
+
+  <script>
+    // Fetch measurement data and update table
+    function fetchMeasurements() {
+      fetch('/api/measurements')
+        .then(response => response.json())
+        .then(data => {
+          if (data.error) {
+            console.error('Error fetching measurements:', data.error);
+            return;
+          }
+          document.getElementById('heightVal').textContent = data.height;
+          document.getElementById('idVal').textContent     = data.id;
+          document.getElementById('odVal').textContent     = data.od;
+        })
+        .catch(err => console.error('Network error:', err));
+    }
+
+    // Start the system
+    function startSystem() {
+      updateStatus('Starting system…');
+      fetch('/api/start', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+          if (data.error) {
+            updateStatus('Error starting system: ' + data.error);
+            return;
+          }
+          updateStatus('System started');
+          fetchMeasurements();
+        })
+        .catch(err => updateStatus('Network error: ' + err));
+    }
+
+    // Stop the system
+    function stopSystem() {
+      updateStatus('Stopping system…');
+      fetch('/api/stop', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+          if (data.error) {
+            updateStatus('Error stopping system: ' + data.error);
+            return;
+          }
+          updateStatus('System stopped');
+        })
+        .catch(err => updateStatus('Network error: ' + err));
+    }
+
+    // Emergency stop
+    function emergencyStop() {
+      updateStatus('Triggering emergency stop…');
+      fetch('/api/emergency_stop', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+          if (data.error) {
+            updateStatus('Error during emergency stop: ' + data.error);
+            return;
+          }
+          updateStatus('Emergency stop triggered');
+        })
+        .catch(err => updateStatus('Network error: ' + err));
+    }
+
+    // Update status message
+    function updateStatus(message) {
+      document.getElementById('status').textContent = message;
+    }
+
+    // Poll measurements every five seconds
+    setInterval(fetchMeasurements, 5000);
+    // Initial fetch
+    fetchMeasurements();
+  </script>
+</body>
+</html>
