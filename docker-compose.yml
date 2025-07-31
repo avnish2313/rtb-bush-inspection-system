@@ -1,0 +1,33 @@
+version: "3"
+
+# Docker Compose configuration for the RTB Bush inspection system.
+#
+# This file defines two services:
+#   - backend: handles hardware control and exposes REST API endpoints.
+#   - frontend: provides a web dashboard and proxies requests to the backend.
+#
+# The services share a custom bridge network so they can resolve each other by
+# name (e.g. the frontend can reach the backend at http://backend:5000).
+
+services:
+  backend:
+    build: ./backend
+    container_name: rtb_backend
+    networks:
+      - rtbnet
+    ports:
+      - "5001:5000"  # expose the backend API on host port 5001
+
+  frontend:
+    build: ./frontend
+    container_name: rtb_frontend
+    networks:
+      - rtbnet
+    ports:
+      - "8080:5000"  # serve the dashboard on host port 8080
+    environment:
+      - BACKEND_URL=http://backend:5000  # instruct the frontend where to find the backend service
+
+networks:
+  rtbnet:
+    driver: bridge
